@@ -34,7 +34,7 @@ A successful connection session will look something like this:
 > :tmi.twitch.tv 376 twitch_username :>
 ```
 
-About once every five minutes, you will receive a `PING tmi.twitch.tv` from the server, in order to ensure that your connection to the server is not prematurely terminated, you should reply with `PONG tmi.twitch.tv`.
+About once every five minutes, you will receive a `PING :tmi.twitch.tv` from the server, in order to ensure that your connection to the server is not prematurely terminated, you should reply with `PONG :tmi.twitch.tv`.
 
 ## On an Unsuccessful Connection
 
@@ -46,7 +46,7 @@ If your connection fails for any reason, you will be disconnected from the serve
 
 ## Command & Message Limit
 
-- If you send more than 20 commands or messages to the server within a 30 second period, you will be locked out for 8 hours automatically. These are *not* lifted so please be careful when working with IRC!
+- If you send more than 20 commands or messages to the server within a 30 second period, you will be locked out for 2 hours automatically. These are *not* lifted so please be careful when working with IRC!
 - This limit is elevated to 100 messages per 30 seconds for users that *only* send messages/commands to channels in which they have Moderator/Operator status.
 
 ## Commands you can send
@@ -226,18 +226,19 @@ Adds IRC v3 message tags to `PRIVMSG`, `USERSTATE`, `NOTICE` and `GLOBALUSERSTAT
 Example message:
 
 ```
-> @color=#0D4200;display-name=TWITCH_UserNaME;emotes=25:0-4,12-16/1902:6-10;subscriber=0;turbo=1;user-type=global_mod :twitch_username!twitch_username@twitch_username.tmi.twitch.tv PRIVMSG #channel :Kappa Keepo Kappa
+> @color=#0D4200;display-name=TWITCH_UserNaME;emotes=25:0-4,12-16/1902:6-10;mod=0;subscriber=0;turbo=1;user-id=1337;user-type=global_mod :twitch_username!twitch_username@twitch_username.tmi.twitch.tv PRIVMSG #channel :Kappa Keepo Kappa
 ```
 
 - `color` is a hexadecimal RGB color code
   - Empty if it's never been set.
-- `display-name` is the user's display name, escaped as described [as described in the IRCv3 spec](http://ircv3.net/specs/core/message-tags-3.2.html).
+- `display-name` is the user's display name, escaped [as described in the IRCv3 spec](http://ircv3.net/specs/core/message-tags-3.2.html).
   - Empty if it's never been set.
 - `emotes` contains information to replace text in the message with the emote images and *can be empty*. The format is as follows:
   - `emote_id:first_index-last_index,another_first-another_last/another_emote_id:first_index-last_index`
   - `emote_id` is the number to use in this URL: `http://static-cdn.jtvnw.net/emoticons/v1/:emote_id/:size` (size is 1.0, 2.0 or 3.0)
   - Emote indexes are simply character indexes. `\001ACTION ` does *not* count and indexing starts from the first character that is part of the user's "actual message". In the example message, the first Kappa (emote id 25) is from character 0 (K) to character 4 (a), and the other Kappa is from 12 to 16.
-- `subscriber`and `turbo` are either 0 or 1 depending on whether the user has sub or turbo badge or not.
+- `mod`, `subscriber` and `turbo` are either 0 or 1 depending on whether the user has mod, sub or turbo badge or not.
+- `user-id` is the user's ID.
 - `user-type` is either *empty*, `mod`, `global_mod`, `admin` or `staff`.
   - The broadcaster can have any of these, including empty.
 
@@ -246,17 +247,23 @@ Example message:
 USERSTATE is sent when joining a channel and every time you send a PRIVMSG to a channel. Example:
 
 ```
-> @color=#0D4200;display-name=TWITCH_UserNaME;emote-sets=0,33,50,237,793,2126,3517,4578,5569,9400,10337,12239;subscriber=1;turbo=1;user-type=staff :tmi.twitch.tv USERSTATE #channel
+> @color=#0D4200;display-name=TWITCH_UserNaME;emote-sets=0,33,50,237,793,2126,3517,4578,5569,9400,10337,12239;mod=1;subscriber=1;turbo=1;user-type=staff :tmi.twitch.tv USERSTATE #channel
 ```
 
-- `emote-sets` contains your emote set, which you can use to request a subset of `https://api.twitch.tv/kraken/chat/emoticon_images`.
+- `emote-sets` contains your emote set, which you can use to request a subset of [`/chat/emoticon_images`](/v3_resources/chat.md#get-chatemoticon_images).
   - eg: `https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=0,33,50,237,793,2126,3517,4578,5569,9400,10337,12239`
   - Always contains at least 0.
-- Other tags shared with PRIVMSG function the same way.
+- Other tags are shared with PRIVMSG and function the same way.
 
 ### GLOBALUSERSTATE
 
-GLOBALUSERSTATE will be used in the future to describe non-channel-specific state information.
+GLOBALUSERSTATE is sent on successful login, if the capabilities have been acknowledged before then. Example:
+
+```
+@color=#0D4200;display-name=TWITCH_UserNaME;emote-sets=0,33,50,237,793,2126,3517,4578,5569,9400,10337,12239;turbo=0;user-id=1337;user-type=admin :tmi.twitch.tv GLOBALUSERSTATE
+```
+
+- All tags are shared with PRIVMSG or USERSTATE and function the same way.
 
 ### ROOMSTATE
 
@@ -272,7 +279,7 @@ Changes only contain the relevant tag. Setting slow mode to 10 seconds for examp
 > @slow=10 :tmi.twitch.tv ROOMSTATE #channel
 ```
 
-- `broadcaster-lang` is the chat language when [broadcaster language mode](http://blog.twitch.tv/2015/07/broadcaster-language-mode/) is enabled, and empty otherwise. A few examples would be `en` for English, `fi` for Finnish and `es-MX` for Mexican variant of Spanish. Changes to this will not trigger another `ROOMSTATE`.
+- `broadcaster-lang` is the chat language when [broadcaster language mode](http://blog.twitch.tv/2015/07/broadcaster-language-mode/) is enabled, and empty otherwise. A few examples would be `en` for English, `fi` for Finnish and `es-MX` for Mexican variant of Spanish.
 - `r9k` is R9K mode. Messages with more than 9 characters must be unique. `0` means disabled, `1` enabled.
 - `subs-only` is subscribers only mode. Only subscribers and moderators can chat. `0` disabled, `1` enabled.
 - `slow` determines how many seconds chatters without moderator privileges must wait between sending messages.
